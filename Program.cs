@@ -76,6 +76,8 @@ public class Curve
 
     public bool VerificationSignature(BigInteger r, BigInteger s, (BigInteger Qx, BigInteger Qy) Q, string message)
     {
+        if (Q == (0, 0))
+            throw new NullReferenceException("Keys not generated");
         message = "Hello!";
         byte[] hash = new byte[33]; //Создаем массив под хэш на 1 байт больше, потому что в BigInteger'e последний байт отводится под знак числа
                                     //(положительный < 128, отрицательный >= 128)
@@ -145,12 +147,10 @@ public class Curve
                 (resultX, resultY) = AddPoints(point, (resultX, resultY));
             }
         }
-
-
         return (resultX, resultY);
     }
 
-    private (BigInteger, BigInteger) AddPoints((BigInteger x, BigInteger y) firstPoint, (BigInteger x, BigInteger y) secondPoint)
+    public (BigInteger, BigInteger) AddPoints((BigInteger x, BigInteger y) firstPoint, (BigInteger x, BigInteger y) secondPoint)
     {
         BigInteger m;
         if (firstPoint.x == secondPoint.x && firstPoint.y == secondPoint.y)
@@ -196,5 +196,4 @@ public class Curve
         y = x1;
         return d;
     }
-
 }
