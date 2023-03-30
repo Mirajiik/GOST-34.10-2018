@@ -3,34 +3,78 @@ using System.Text;
 
 public class Program
 {
-    static readonly int a = 0, b = 7; //Curve secp256k1 
-    static readonly BigInteger p = BigInteger.Parse("0 ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f".Replace(" ", ""),
-            System.Globalization.NumberStyles.HexNumber);
-    static readonly BigInteger q = BigInteger.Parse("0 ffffffff ffffffff ffffffff fffffffe baaedce6 af48a03b bfd25e8c d0364141".Replace(" ", ""),
-        System.Globalization.NumberStyles.HexNumber);
-    static readonly Random rnd = new Random();
-    static readonly BigInteger Px = BigInteger.Parse("0 79be667e f9dcbbac 55a06295 ce870b07 029bfcdb 2dce28d9 59f2815b 16f81798".Replace(" ", ""),
-            System.Globalization.NumberStyles.HexNumber);
-    static readonly BigInteger Py = BigInteger.Parse("0 483ada77 26a3c465 5da4fbfc 0e1108a8 fd17b448 a6855419 9c47d08f fb10d4b8".Replace(" ", ""),
-        System.Globalization.NumberStyles.HexNumber);
     private static void Main(string[] args)
     {
-        Console.WriteLine($"Curve secp256k1\na = {a}, b = {b}\np = {p}\nq = {q}\nPx = {Px}\nPy = {Py}\n");
-
-        BigInteger dA; //Закрытый ключ
-        BigInteger Qx, Qy; //Точка, открытый ключ
-        (dA, (Qx, Qy)) = KeyGen(); // Генерация открытого и закрытого ключа
-        Console.WriteLine($"Qx = {Qx}\nQy = {Qy}");
+        Curve secp256k1 = new Curve();
+        Console.WriteLine($"Curve secp256k1\na = {secp256k1.a}, b = {secp256k1.b}\np = {secp256k1.p}\nq = {secp256k1.q}\n" +
+            $"Px = {secp256k1.P.Px}\nPy = {secp256k1.P.Py}\n");
+        
+        secp256k1.KeyGen(); // Генерация открытого и закрытого ключа
+        Console.WriteLine($"Qx = {secp256k1.Q.Qx}\nQy = {secp256k1.Q.Qy}");
 
         Console.WriteLine("Enter message:");
         string message = Console.ReadLine();
 
-        (BigInteger r, BigInteger s) = SignMessage(message, dA);// Подпись сообщения
+        (BigInteger r, BigInteger s) = secp256k1.SignMessage(message, secp256k1.dA);// Подпись сообщения
 
-        Console.WriteLine($"Verification = {VerificationSignature(r, s, Qx, Qy, message)}"); //Проверка подписи
+        Console.WriteLine($"Verification = {secp256k1.VerificationSignature(r, s, secp256k1.Q, message)}"); //Проверка подписи
+    }
+}
+
+public class Curve
+{
+    private readonly int _a, _b; 
+    private readonly BigInteger _p;
+    private readonly BigInteger _q;
+    private static readonly Random rnd = new Random();
+    private readonly (BigInteger _Px, BigInteger _Py) _P;
+    public int a { get => _a; }
+    public int b { get => _b; }
+    /// <summary>
+    /// Module Elliptic Curve
+    /// </summary>
+    public BigInteger p { get => _p; }
+    /// <summary>
+    /// Order Cyclic Subgroup
+    /// </summary>
+    public BigInteger q { get => _q; }
+    /// <summary>
+    /// Start Point
+    /// </summary>
+    public (BigInteger Px, BigInteger Py) P { get => _P; }
+
+    /// <summary>
+    /// Private Signature Key
+    /// </summary>
+    public BigInteger dA { get; set; } //Закрытый ключ
+    /// <summary>
+    /// Point Curve. Signature Verification Public Key
+    /// </summary>
+    public (BigInteger Qx, BigInteger Qy) Q { get; set; }
+
+    /// <summary>
+    /// Curve secp256k1
+    /// </summary>
+    public Curve() //Curve secp256k1 
+    {
+        _a = 0;
+        _b = 7;
+        _p = BigInteger.Parse("0 ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f".Replace(" ", ""), System.Globalization.NumberStyles.HexNumber);
+        _q = BigInteger.Parse("0 ffffffff ffffffff ffffffff fffffffe baaedce6 af48a03b bfd25e8c d0364141".Replace(" ", ""), System.Globalization.NumberStyles.HexNumber);
+        _P = (BigInteger.Parse("0 79be667e f9dcbbac 55a06295 ce870b07 029bfcdb 2dce28d9 59f2815b 16f81798".Replace(" ", ""), System.Globalization.NumberStyles.HexNumber),
+        BigInteger.Parse("0 483ada77 26a3c465 5da4fbfc 0e1108a8 fd17b448 a6855419 9c47d08f fb10d4b8".Replace(" ", ""), System.Globalization.NumberStyles.HexNumber));
     }
 
-    public static bool VerificationSignature(BigInteger r, BigInteger s, BigInteger Qx, BigInteger Qy, string message)
+    public Curve(int a, int b, BigInteger p, BigInteger q, (BigInteger Px, BigInteger Py) P)
+    {
+        _a = a;
+        _b = b;
+        _p = p;
+        _q = q;
+        _P = P;
+    }
+
+    public bool VerificationSignature(BigInteger r, BigInteger s, (BigInteger Qx, BigInteger Qy) Q, string message)
     {
         message = "Hello!";
         byte[] hash = new byte[33]; //Создаем массив под хэш на 1 байт больше, потому что в BigInteger'e последний байт отводится под знак числа
@@ -43,13 +87,15 @@ public class Program
         BigInteger v = inverse(e, q);
         BigInteger z1 = s * v % q;
         BigInteger z2 = -1 * r * v % q + q;
-        (BigInteger Cx, BigInteger Cy) = AddPoints(Mult(Px, Py, z1), Mult(Qx, Qy, z2));
+        (BigInteger Cx, BigInteger Cy) = AddPoints(Mult(P, z1), Mult(Q, z2));
         BigInteger R = Cx % q;
         return r == R;
     }
 
-    public static (BigInteger, BigInteger) SignMessage(string message, BigInteger dA)
+    public (BigInteger, BigInteger) SignMessage(string message, BigInteger dA)
     {
+        if (dA == 0)
+            throw new NullReferenceException("Keys not generated");
         BigInteger k, Cx, Cy; //Закрытый ключ
         byte[] hash = new byte[33]; //Создаем массив под хэш на 1 байт больше, потому что в BigInteger'e последний байт отводится под знак числа
                                     //(положительный < 128, отрицательный >= 128)
@@ -60,46 +106,43 @@ public class Program
         if (e == 0)
             e = 1;
 
-        BigInteger r;
-        BigInteger s;
+        BigInteger r, s;
         do
         {
             do
             {
                 k = rnd.Next(q);
-                (Cx, Cy) = Mult(Px, Py, k);
+                (Cx, Cy) = Mult(P, k);
                 r = Cx % q;
                 Console.WriteLine($"k = {k}\nPx = {Cx}\nPy = {Cy}\nr = {r}");
             } while (r == 0);
-            //s = inverse(k, q) * (z + r * dA) % q;
             s = (r * dA + k * e) % q;
             Console.WriteLine($"s = {s}\n");
         } while (s == 0);
-
         return (r, s);
     }
 
-    public static (BigInteger, (BigInteger, BigInteger)) KeyGen()
+    public void KeyGen()
     {
-        var dA = rnd.Next(q);
-        return (dA, Mult(Px, Py, dA));
+        var k = rnd.Next(q);
+        (dA, Q) = (k, Mult(P, k));
     }
 
-    public static (BigInteger, BigInteger) Mult(BigInteger x, BigInteger y, BigInteger k)
+    public (BigInteger, BigInteger) Mult((BigInteger x, BigInteger y) point, BigInteger k)
     {
         while ((k & 1) == 0)
         {
-            (x, y) = AddPoints((x, y), (x, y));
+            point = AddPoints(point, point);
             k >>= 1;
         }
-        (BigInteger resultX, BigInteger resultY) = (x, y);
+        (BigInteger resultX, BigInteger resultY) = point;
         while (k != 0)
         {
-            (x, y) = AddPoints((x, y), (x, y));
+            point = AddPoints(point, point);
             k >>= 1;
             if ((k & 1) == 1)
             {
-                (resultX, resultY) = AddPoints((x, y), (resultX, resultY));
+                (resultX, resultY) = AddPoints(point, (resultX, resultY));
             }
         }
 
@@ -107,7 +150,7 @@ public class Program
         return (resultX, resultY);
     }
 
-    static (BigInteger, BigInteger) AddPoints((BigInteger x, BigInteger y) firstPoint, (BigInteger x, BigInteger y) secondPoint)
+    private (BigInteger, BigInteger) AddPoints((BigInteger x, BigInteger y) firstPoint, (BigInteger x, BigInteger y) secondPoint)
     {
         BigInteger m;
         if (firstPoint.x == secondPoint.x && firstPoint.y == secondPoint.y)
