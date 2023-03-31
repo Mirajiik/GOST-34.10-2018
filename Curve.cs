@@ -3,13 +3,13 @@ using System.Text;
 
 public class Curve
 {
-    private readonly int _a, _b;
+    private readonly BigInteger _a, _b;
     private readonly BigInteger _p;
     private readonly BigInteger _q;
     private static readonly Random rnd = new Random();
     private readonly (BigInteger _Px, BigInteger _Py) _P;
-    public int a { get => _a; }
-    public int b { get => _b; }
+    public BigInteger a { get => _a; }
+    public BigInteger b { get => _b; }
     /// <summary>
     /// Module Elliptic Curve
     /// </summary>
@@ -48,7 +48,7 @@ public class Curve
         KeyGen();
     }
 
-    public Curve(int a, int b, BigInteger p, BigInteger q, (BigInteger Px, BigInteger Py) P)
+    public Curve(BigInteger a, BigInteger b, BigInteger p, BigInteger q, (BigInteger Px, BigInteger Py) P, BigInteger d = new())
     {
         _a = a;
         _b = b;
@@ -56,6 +56,7 @@ public class Curve
         _q = q;
         _P = P;
         PrintParam();
+        dA = d;
         KeyGen();
     }
 
@@ -116,8 +117,12 @@ public class Curve
 
     public void KeyGen()
     {
-        var k = rnd.Next(q);
-        (dA, Q) = (k, Mult(P, k));
+        if (dA == 0)
+        {
+            var k = rnd.Next(q);
+            dA = k;
+        }
+        Q = Mult(P, dA);
         Console.WriteLine("Keys generated");
         Console.WriteLine($"dA = {dA}\nQx = {Q.Qx}\nQy = {Q.Qy}\n");
     }
