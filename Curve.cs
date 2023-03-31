@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Security.Cryptography;
 using System.Text;
 
 public class Curve
@@ -6,7 +7,8 @@ public class Curve
     private readonly BigInteger _a, _b;
     private readonly BigInteger _p;
     private readonly BigInteger _q;
-    private static readonly Random rnd = new Random();
+    //private static readonly Random rnd = new Random();
+    private readonly static RandomNumberGenerator rnd = RandomNumberGenerator.Create();
     private readonly (BigInteger _Px, BigInteger _Py) _P;
     public BigInteger a { get => _a; }
     public BigInteger b { get => _b; }
@@ -69,7 +71,7 @@ public class Curve
     {
         if (Q == (0, 0))
             throw new NullReferenceException("Keys not generated");
-        message = "Hello!";
+        message = "Привет!";
         byte[] hash = new byte[33]; //Создаем массив под хэш на 1 байт больше, потому что в BigInteger'e последний байт отводится под знак числа
                                     //(положительный < 128, отрицательный >= 128)
         Streebog.HashFunc(Encoding.Default.GetBytes(message), Streebog.OutSize.bit256, Streebog.TypeInput.Chars).Reverse().ToArray().CopyTo(hash, 0);

@@ -1,8 +1,9 @@
 ﻿using System.Numerics;
+using System.Security.Cryptography;
 
 public static class BigIntegerExtension
 {
-    public static BigInteger Next(this Random random, BigInteger max)
+    public static BigInteger Next(this RandomNumberGenerator random, BigInteger max)
     {
         if (max < 0)
             throw new ArgumentOutOfRangeException(nameof(max));
@@ -11,8 +12,8 @@ public static class BigIntegerExtension
         BigInteger bigInteger;
         do
         {
-            random.NextBytes(result);
-            result[n - 1] = 0;
+            random.GetBytes(result);
+            result[n-1] = 0;
             bigInteger = new BigInteger(result);
         } while (bigInteger >= max);
         return bigInteger;
