@@ -7,7 +7,6 @@ public class Curve
     private readonly BigInteger _a, _b;
     private readonly BigInteger _p;
     private readonly BigInteger _q;
-    //private static readonly Random rnd = new Random();
     private readonly static RandomNumberGenerator rnd = RandomNumberGenerator.Create();
     private readonly (BigInteger _Px, BigInteger _Py) _P;
     public BigInteger a { get => _a; }
@@ -35,21 +34,23 @@ public class Curve
     public (BigInteger Qx, BigInteger Qy) Q { get; set; }
 
     /// <summary>
-    /// Curve secp256k1
+    /// Curve GOST 34.10-2018
     /// </summary>
-    public Curve() //Curve secp256k1 
+    public Curve()
     {
-        _a = 0;
-        _b = 7;
-        _p = BigInteger.Parse("0 ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f".Replace(" ", ""), System.Globalization.NumberStyles.HexNumber);
-        _q = BigInteger.Parse("0 ffffffff ffffffff ffffffff fffffffe baaedce6 af48a03b bfd25e8c d0364141".Replace(" ", ""), System.Globalization.NumberStyles.HexNumber);
-        _P = (BigInteger.Parse("0 79be667e f9dcbbac 55a06295 ce870b07 029bfcdb 2dce28d9 59f2815b 16f81798".Replace(" ", ""), System.Globalization.NumberStyles.HexNumber),
-        BigInteger.Parse("0 483ada77 26a3c465 5da4fbfc 0e1108a8 fd17b448 a6855419 9c47d08f fb10d4b8".Replace(" ", ""), System.Globalization.NumberStyles.HexNumber));
-        Console.WriteLine("Curve secp256k1\n");
+        _a = 7;
+        _b = BigInteger.Parse("05FBFF498AA938CE739B8E022FBAFEF40563F6E6A3472FC2A514C0CE9DAE23B7E", System.Globalization.NumberStyles.HexNumber);
+        _p = BigInteger.Parse("08000000000000000000000000000000000000000000000000000000000000431", System.Globalization.NumberStyles.HexNumber);
+        _q = BigInteger.Parse("08000000000000000000000000000000150FE8A1892976154C59CFC193ACCF5B3", System.Globalization.NumberStyles.HexNumber);
+        _P = (BigInteger.Parse("02", System.Globalization.NumberStyles.HexNumber),
+            BigInteger.Parse("08E2A8A0E65147D4BD6316030E16D19C85C97F0A9CA267122B96ABBCEA7E8FC8", System.Globalization.NumberStyles.HexNumber));
+        Console.WriteLine("Curve GOST 34.10-2018\n");
         PrintParam();
         KeyGen();
     }
-
+    /// <summary>
+    /// Create custom curve
+    /// </summary>
     public Curve(BigInteger a, BigInteger b, BigInteger p, BigInteger q, (BigInteger Px, BigInteger Py) P, BigInteger d = new())
     {
         _a = a;
@@ -71,7 +72,6 @@ public class Curve
     {
         if (Q == (0, 0))
             throw new NullReferenceException("Keys not generated");
-        message = "Привет!";
         byte[] hash = new byte[33]; //Создаем массив под хэш на 1 байт больше, потому что в BigInteger'e последний байт отводится под знак числа
                                     //(положительный < 128, отрицательный >= 128)
         Streebog.HashFunc(Encoding.Default.GetBytes(message), Streebog.OutSize.bit256, Streebog.TypeInput.Chars).Reverse().ToArray().CopyTo(hash, 0);
